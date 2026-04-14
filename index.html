@@ -404,18 +404,36 @@
         });
     }
 
+    // স্টাফ ডিরেক্টরি রেন্ডার এবং রিমুভ ফাংশন
     function renderStaff() {
         database.ref('staff').on('value', snapshot => {
             const list = snapshot.val() || {};
             const container = document.getElementById('staff-list');
             container.innerHTML = '<h4 style="margin:20px 0 10px; color:var(--cyan);">Staff Directory:</h4>';
-            Object.values(list).forEach(s => {
-                container.innerHTML += `<div style="padding:12px; border-bottom:1px solid #222; display:flex; justify-content:space-between; font-size:14px;"><span>${s.name}</span> <b style="color:var(--magenta)">${s.pass}</b></div>`;
+            
+            Object.keys(list).forEach(key => {
+                const s = list[key];
+                const staffRow = document.createElement('div');
+                staffRow.style = "padding:12px; border-bottom:1px solid #222; display:flex; justify-content:space-between; align-items:center; font-size:14px;";
+                
+                staffRow.innerHTML = `
+                    <span>${s.name} (<b style="color:var(--magenta)">${s.pass}</b>)</span>
+                    <button class="action-btn btn-del" onclick="removeStaff('${key}')" style="margin:0;">Remove</button>
+                `;
+                container.appendChild(staffRow);
             });
         });
+    }
+
+    function removeStaff(key) {
+        if(confirm("Are you sure you want to revoke this access?")) {
+            database.ref('staff/' + key).remove().then(() => {
+                alert("Access Revoked!");
+            });
+        }
     }
 
     updateUI();
 </script>
 </body>
-                                                                                               </html>
+</html>
