@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AHYPAR | ELITE MANAGEMENT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --cyan: #00f2ff;
+            --magenta: #ff0055;
+            --glass: rgba(5, 5, 12, 0.96);
+            --border: rgba(0, 242, 255, 0.25);
+            --glow: 0 0 20px rgba(0, 242, 255, 0.3);
+            --glow-mg: 0 0 20px rgba(255, 0, 85, 0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Rajdhani', sans-serif; }
+        body { background: #000 url('https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHpueG5qNGR3eHh6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R6Z3R/3o7TKMGpxxWlHXYJvW/giphy.gif') center/cover no-repeat fixed; color: #fff; min-height: 100vh; overflow-x: hidden; }
+        .overlay { background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(8,0,15,0.98) 100%); min-height: 100vh; padding: 20px; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; }
+
+        nav { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+        .menu-dots { font-size: 35px; cursor: pointer; color: var(--cyan); text-shadow: var(--glow); }
+        .dropdown { display: none; position: absolute; right: 0; background: var(--glass); border: 1px solid var(--border); border-radius: 12px; width: 220px; backdrop-filter: blur(15px); box-shadow: var(--glow); }
+        .dropdown a { display: block; padding: 15px; color: #fff; text-decoration: none; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); text-transform: uppercase; }
+        .dropdown a:hover { background: var(--cyan); color: #000; }
+
+        .view { display: none; background: var(--glass); padding: 35px; border-radius: 28px; border: 1px solid var(--border); backdrop-filter: blur(25px); animation: fadeIn 0.6s ease; box-shadow: var(--glow); }
+        .view.active { display: block; }
+
+        h1 { font-family: 'Bebas Neue'; font-size: 4.5rem; color: var(--cyan); text-align: center; letter-spacing: 5px; text-shadow: var(--glow); line-height: 1; margin-bottom: 10px; }
+        .sec-title { font-family: 'Bebas Neue'; font-size: 2.2rem; color: var(--magenta); margin: 25px 0 15px; border-left: 6px solid var(--magenta); padding-left: 15px; text-shadow: var(--glow-mg); }
+
+        .rules-card { background: rgba(255, 0, 85, 0.03); padding: 25px; border-radius: 18px; border: 1px solid rgba(255, 0, 85, 0.2); margin: 25px 0; }
+        .rules-card h3 { font-family: 'Bebas Neue'; color: var(--cyan); font-size: 1.8rem; margin-bottom: 12px; }
+        .rules-card li { margin-bottom: 10px; font-size: 14px; list-style: none; color: #e0e0e0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
+        .rules-card b { color: var(--magenta); }
+
+        .tourney-item { background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 20px; border-radius: 15px; margin-bottom: 15px; cursor: pointer; transition: 0.3s; position: relative; }
+        .tourney-item:hover { border-color: var(--cyan); box-shadow: var(--glow); }
+        .tourney-item.selected { border-color: var(--cyan); background: rgba(0, 242, 255, 0.08); border-width: 2px; }
+        .tourney-item.closed { opacity: 0.6; cursor: not-allowed; border-color: #444; }
+        .fee-badge { position: absolute; top: 10px; right: 10px; background: var(--magenta); color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
+        .status-tag { font-size: 9px; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; margin-left: 5px; }
+        .status-open { background: #00ff88; color: #000; }
+        .status-closed { background: #555; color: #fff; }
+
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+        .admin-table th { color: var(--cyan); text-align: left; padding: 10px; border-bottom: 2px solid var(--border); font-family: 'Bebas Neue'; font-size: 1.2rem; }
+        .admin-table td { padding: 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .action-btn { padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 10px; font-weight: bold; margin-right: 4px; }
+        .btn-edit { background: var(--cyan); color: #000; }
+        .btn-del { background: var(--magenta); color: #fff; }
+        .btn-status { background: #fff; color: #000; }
+
+        .member-box { background: rgba(255, 255, 255, 0.02); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 8px; }
+        input, select { width: 100%; background: rgba(0,0,0,0.6); border: 1px solid var(--border); padding: 14px; color: #fff; border-radius: 8px; outline: none; margin-top: 8px; }
+        input:focus { border-color: var(--magenta); }
+        label { font-size: 11px; color: var(--cyan); text-transform: uppercase; letter-spacing: 1px; }
+
+        .btn-main { width: 100%; padding: 20px; background: var(--cyan); color: #000; border: none; font-family: 'Bebas Neue'; font-size: 1.8rem; cursor: pointer; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0% 100%); transition: 0.4s; margin-top: 25px; }
+        .btn-main:hover { background: #fff; box-shadow: var(--glow); transform: translateY(-2px); }
+
+        footer { text-align: center; padding: 50px 0; font-size: 12px; opacity: 0.6; letter-spacing: 3px; line-height: 1.8; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="menu-dots" onclick="toggleMenu()">⋮</div>
+    <div class="dropdown" id="mainMenu">
+        <a href="#" onclick="showView('step1')">Home</a>
+        <a href="#" id="loginLink" onclick="showView('view-login')">Staff Login</a>
+        <a href="#" id="postLink" style="display:none;" onclick="showView('view-post')">Event Dashboard</a>
+        <a href="#" id="manageLink" style="display:none;" onclick="showView('view-manage')">Manage Access</a>
+        <a href="#" id="logoutLink" style="display:none;" onclick="logout()">Logout</a>
+    </div>
+</nav>
+
+<div class="overlay">
+    <div class="container">
+        
+        <div id="step1" class="view active">
+            <h1>AHYPAR ESPORTS</h1>
+            <p style="text-align:center; letter-spacing: 6px; color: var(--cyan); font-weight: bold; font-size: 12px;">THE ELITE HUB</p>
+            <div class="rules-card">
+                <h3>TOURNAMENT PROTOCOLS:</h3>
+                <ul>
+                    <li>● <b>Account Check:</b> Join <b>AHYPAR Official Discord</b> first.</li>
+                    <li>● <b>Accuracy:</b> Fill all boxes carefully. Errors = <b>Instant Kick</b>.</li>
+                    <li>● <b>Live Info:</b> Slot lists will be on Discord/Mail.</li>
+                    <li>● <b>Entry Fee:</b> Check the fee badge on the event card.</li>
+                </ul>
+            </div>
+            <button class="btn-main" onclick="showView('step2')">PROCEED TO ARENA</button>
+        </div>
+
+        <div id="step2" class="view">
+            <h2 class="sec-title">ONGOING TOURNAMENTS</h2>
+            <div id="tourney-list"></div>
+            <button class="btn-main" onclick="checkSelection()">START REGISTRATION</button>
+        </div>
+
+        <div id="step3" class="view">
+            <h2 id="reg-title" style="text-align:center; color:var(--cyan); font-family:'Bebas Neue'; font-size: 2.5rem;">REGISTRATION</h2>
+            <form action="https://formspree.io/f/xvzdoebv" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="Tournament" id="hidden-tn">
+                <div style="display:flex; gap:10px; margin-bottom:25px;">
+                    <button type="button" id="b-solo" onclick="setRegType('Solo')" style="flex:1; padding:15px; border-radius:10px; border:none; font-family:'Bebas Neue'; font-size:1.5rem; cursor:pointer;">SOLO</button>
+                    <button type="button" id="b-squad" onclick="setRegType('Squad')" style="flex:1; padding:15px; border-radius:10px; border:none; font-family:'Bebas Neue'; font-size:1.5rem; cursor:pointer;">SQUAD</button>
+                </div>
+                <div id="solo-section">
+                    <div class="member-box">
+                        <label>Player Information *</label>
+                        <div class="input-row">
+                            <input type="text" name="Solo_Name" placeholder="Name">
+                            <input type="text" name="Solo_UID" placeholder="UID">
+                            <input type="text" name="Solo_Discord" placeholder="Discord">
+                        </div>
+                    </div>
+                </div>
+                <div id="squad-section" style="display:none;">
+                    <div class="member-box">
+                        <label>Team Identity *</label>
+                        <input type="text" name="Team_Name" placeholder="Team Name">
+                        <label style="margin-top:10px;">Team Logo *</label>
+                        <input type="file" name="Team_Logo">
+                    </div>
+                    <div class="member-box"><label>Leader (M1)</label><div class="input-row"><input type="text" name="M1_N" placeholder="Name"><input type="text" name="M1_U" placeholder="UID"><input type="text" name="M1_D" placeholder="Discord"></div></div>
+                    <div class="member-box"><label>Member 2</label><div class="input-row"><input type="text" name="M2_N" placeholder="Name"><input type="text" name="M2_U" placeholder="UID"><input type="text" name="M2_D" placeholder="Discord"></div></div>
+                    <div class="member-box"><label>Member 3</label><div class="input-row"><input type="text" name="M3_N" placeholder="Name"><input type="text" name="M3_U" placeholder="UID"><input type="text" name="M3_D" placeholder="Discord"></div></div>
+                    <div class="member-box"><label>Member 4</label><div class="input-row"><input type="text" name="M4_N" placeholder="Name"><input type="text" name="M4_U" placeholder="UID"><input type="text" name="M4_D" placeholder="Discord"></div></div>
+                </div>
+                <div class="member-box" style="border-left:4px solid var(--magenta);">
+                    <label>Prize Payout Details</label>
+                    <select name="Payout_Type" id="payoutSelect" onchange="togglePayoutFields()">
+                        <option value="UPI">UPI ID</option>
+                        <option value="QR">QR Code (File)</option>
+                    </select>
+                    <div id="qr-upload-box" style="display:none; margin-top:10px;">
+                        <label>Upload QR Code</label>
+                        <input type="file" name="Prize_QR">
+                    </div>
+                    <input type="text" name="Account_Holder_Name" placeholder="Accounts Holder Name" required>
+                    <input type="text" id="upi-input" name="UPI_ID" placeholder="UPI ID" required>    
+                </div>
+                <button type="submit" class="btn-main" style="background:var(--magenta); color:#fff;">SUBMIT APPLICATION</button>
+            </form>
+        </div>
+
+        <div id="view-login" class="view">
+            <h2 class="sec-title">STAFF AUTHENTICATION</h2>
+            <input type="password" id="passInput" placeholder="Enter Access Key">
+            <button class="btn-main" onclick="attemptLogin()">UNLOCK SYSTEM</button>
+        </div>
+
+        <div id="view-post" class="view">
+            <div style="background:var(--magenta); padding:5px 15px; border-radius:5px; font-size:11px; display:inline-block; font-weight:bold;">OPERATOR: <span id="admin-name"></span></div>
+            <h2 class="sec-title">EVENT DASHBOARD</h2>
+            
+            <div class="member-box" style="background: rgba(0,242,255,0.03);">
+                <label>New Event Details</label>
+                <input type="text" id="t-name" placeholder="Tournament Title">
+                <div class="input-row">
+                    <select id="t-game">
+                        <option value="Free Fire">Free Fire</option>
+                        <option value="PUBG Mobile">PUBG</option>
+                        <option value="Grand RP">Grand RP</option>
+                    </select>
+                    <input type="text" id="t-fee" placeholder="Fee (e.g. 50 / FREE)">
+                    <select id="t-mode">
+                        <option value="both">Solo & Squad</option>
+                        <option value="solo">Solo Only</option>
+                        <option value="squad">Squad Only</option>
+                    </select>
+                </div>
+                <button class="btn-main" style="font-size:1.2rem; padding:15px;" onclick="createTourney()">PUBLISH NOW</button>
+            </div>
+
+            <h3 class="sec-title" style="font-size:1.5rem; border-color:var(--cyan);">LIVE STATUS & CONTROL</h3>
+            <div style="overflow-x:auto;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Tournament</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-status-list"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-manage" class="view">
+            <h2 class="sec-title">STAFF DIRECTORY</h2>
+            <div class="member-box">
+                <input type="text" id="staff-name" placeholder="Staff Name">
+                <input type="text" id="staff-pass" placeholder="Passcode">
+                <button class="btn-main" onclick="addStaff()">CREATE ACCESS</button>
+            </div>
+            <div id="staff-list"></div>
+        </div>
+
+        <footer>
+            AHYPAR OFFICIAL TOURNAMENT REGISTRATION<br>
+            <b>ENGINEERED BY SHAFIN MIRZA</b><br>
+            © 2026 ALL RIGHTS RESERVED
+        </footer>
+    </div>
+</div>
+
+<script>
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAT14XHqlGWI-5fAharudfI6G9jReNJijE",
+        authDomain: "new-project-99c14.firebaseapp.com",
+        databaseURL: "https://new-project-99c14-default-rtdb.firebaseio.com",
+        projectId: "new-project-99c14",
+        storageBucket: "new-project-99c14.firebasestorage.app",
+        messagingSenderId: "435571900346",
+        appId: "1:435571900346:web:b4f657ec02ce89977ae783",
+        measurementId: "G-VZLCMTR4KZ"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const MASTER_KEY = "27052011";
+    let selectedTourney = null;
+
+    function toggleMenu() {
+        const menu = document.getElementById('mainMenu');
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function showView(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('mainMenu').style.display = 'none';
+        if(id === 'step2') fetchTournaments();
+        if(id === 'view-post') renderAdminControl();
+    }
+
+    // Payment method logic fix
+    function togglePayoutFields() {
+        const type = document.getElementById('payoutSelect').value;
+        const qrBox = document.getElementById('qr-upload-box');
+        const upiInput = document.getElementById('upi-input');
+
+        if(type === 'QR') {
+            qrBox.style.display = 'block';
+            upiInput.style.display = 'none';
+            upiInput.required = false;
+        } else {
+            qrBox.style.display = 'none';
+            upiInput.style.display = 'block';
+            upiInput.required = true;
+        }
+    }
+
+    function attemptLogin() {
+        const pass = document.getElementById('passInput').value;
+        if (pass === MASTER_KEY) {
+            loginSuccess({ name: "Shafin Mirza", role: "master" });
+            return;
+        }
+        
+        database.ref('staff').once('value', snapshot => {
+            const staffs = snapshot.val() || {};
+            let found = Object.values(staffs).find(s => s.pass === pass);
+            if(found) loginSuccess({ name: found.name, role: "staff" });
+            else alert("Access Denied!");
+        });
+    }
+
+    function loginSuccess(user) {
+        localStorage.setItem('ahypar_active', JSON.stringify(user));
+        updateUI();
+        showView('view-post');
+    }
+
+    function updateUI() {
+        const user = JSON.parse(localStorage.getItem('ahypar_active'));
+        if(user) {
+            document.getElementById('admin-name').innerText = user.name;
+            document.getElementById('loginLink').style.display = 'none';
+            document.getElementById('logoutLink').style.display = 'block';
+            document.getElementById('postLink').style.display = 'block';
+            if(user.role === 'master') {
+                document.getElementById('manageLink').style.display = 'block';
+                renderStaff();
+            }
+        }
+    }
+
+    function logout() { localStorage.removeItem('ahypar_active'); location.reload(); }
+
+    function createTourney() {
+        const name = document.getElementById('t-name').value;
+        const game = document.getElementById('t-game').value;
+        const fee = document.getElementById('t-fee').value || 'FREE';
+        const mode = document.getElementById('t-mode').value;
+        if(!name) return alert("Title Required!");
+
+        const newEventRef = database.ref('events').push();
+        newEventRef.set({ id: Date.now(), name, game, fee, mode, status: 'open' })
+        .then(() => {
+            alert("Event Live!");
+            document.getElementById('t-name').value = '';
+            renderAdminControl();
+        });
+    }
+
+    function fetchTournaments() {
+        database.ref('events').on('value', snapshot => {
+            const data = snapshot.val() || {};
+            const list = Object.values(data);
+            const container = document.getElementById('tourney-list');
+            container.innerHTML = list.length ? '' : '<p style="text-align:center; opacity:0.5;">No active events.</p>';
+            list.forEach(t => {
+                const div = document.createElement('div');
+                div.className = `tourney-item ${t.status === 'closed' ? 'closed' : ''}`;
+                div.innerHTML = `
+                    <span class="fee-badge">${t.fee}</span>
+                    <h3>${t.name} <span class="status-tag status-${t.status}">${t.status}</span></h3>
+                    <small>${t.game} | ${t.mode.toUpperCase()}</small>
+                `;
+                if(t.status === 'open') {
+                    div.onclick = () => {
+                        document.querySelectorAll('.tourney-item').forEach(i => i.classList.remove('selected'));
+                        div.classList.add('selected');
+                        selectedTourney = t;
+                    };
+                }
+                container.appendChild(div);
+            });
+        });
+    }
+
+    function renderAdminControl() {
+        database.ref('events').once('value', snapshot => {
+            const data = snapshot.val() || {};
+            const tbody = document.getElementById('admin-status-list');
+            tbody.innerHTML = '';
+            Object.keys(data).forEach(key => {
+                const t = data[key];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${t.name}</b><br><small>${t.game}</small></td>
+                    <td><span class="status-tag status-${t.status}">${t.status}</span></td>
+                    <td>
+                        <button class="action-btn btn-status" onclick="toggleStatus('${key}', '${t.status}')">Toggle</button>
+                        <button class="action-btn btn-del" onclick="deleteTourney('${key}')">Del</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
+    }
+
+    function toggleStatus(key, currentStatus) {
+        const newStatus = currentStatus === 'open' ? 'closed' : 'open';
+        database.ref('events/' + key).update({ status: newStatus }).then(() => renderAdminControl());
+    }
+
+    function deleteTourney(key) {
+        if(!confirm("Are you sure?")) return;
+        database.ref('events/' + key).remove().then(() => renderAdminControl());
+    }
+
+    function checkSelection() {
+        if(!selectedTourney) return alert("Select an Open Tournament!");
+        document.getElementById('reg-title').innerText = selectedTourney.name;
+        document.getElementById('hidden-tn').value = selectedTourney.name;
+        const mode = selectedTourney.mode;
+        document.getElementById('b-solo').style.display = (mode==='squad') ? 'none' : 'block';
+        document.getElementById('b-squad').style.display = (mode==='solo') ? 'none' : 'block';
+        setRegType(mode === 'squad' ? 'Squad' : 'Solo');
+        showView('step3');
+    }
+
+    function setRegType(type) {
+        const isSolo = type === 'Solo';
+        document.getElementById('solo-section').style.display = isSolo ? 'block' : 'none';
+        document.getElementById('squad-section').style.display = isSolo ? 'none' : 'block';
+        document.getElementById('b-solo').style.background = isSolo ? 'var(--cyan)' : 'rgba(255,255,255,0.1)';
+        document.getElementById('b-solo').style.color = isSolo ? '#000' : '#fff';
+        document.getElementById('b-squad').style.background = isSolo ? 'rgba(255,255,255,0.1)' : 'var(--cyan)';
+        document.getElementById('b-squad').style.color = isSolo ? '#fff' : '#000';
+    }
+
+    function addStaff() {
+        const name = document.getElementById('staff-name').value;
+        const pass = document.getElementById('staff-pass').value;
+        if(!name || !pass) return;
+        database.ref('staff').push({ name, pass }).then(() => {
+            renderStaff();
+            document.getElementById('staff-name').value = '';
+            document.getElementById('staff-pass').value = '';
+        });
+    }
+
+    function renderStaff() {
+        database.ref('staff').on('value', snapshot => {
+            const list = snapshot.val() || {};
+            const container = document.getElementById('staff-list');
+            container.innerHTML = '<h4 style="margin:20px 0 10px; color:var(--cyan);">Staff Directory:</h4>';
+            Object.values(list).forEach(s => {
+                container.innerHTML += `<div style="padding:12px; border-bottom:1px solid #222; display:flex; justify-content:space-between; font-size:14px;"><span>${s.name}</span> <b style="color:var(--magenta)">${s.pass}</b></div>`;
+            });
+        });
+    }
+
+    updateUI();
+</script>
+</body>
+                                                                                               </html>
