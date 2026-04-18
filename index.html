@@ -64,7 +64,6 @@
         .btn-main { width: 100%; padding: 20px; background: var(--cyan); color: #000; border: none; font-family: 'Bebas Neue'; font-size: 1.8rem; cursor: pointer; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0% 100%); transition: 0.4s; margin-top: 25px; }
         .btn-main:hover { background: #fff; box-shadow: var(--glow); transform: translateY(-2px); }
 
-        /* Rating System CSS */
         .rating { display: flex; flex-direction: row-reverse; justify-content: center; gap: 10px; margin: 15px 0; }
         .rating input { display: none; }
         .rating label { cursor: pointer; width: 30px; height: 30px; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #555; transition: 0.3s; }
@@ -113,9 +112,9 @@
 
         <div id="step3" class="view">
             <h2 id="reg-title" style="text-align:center; color:var(--cyan); font-family:'Bebas Neue'; font-size: 2.5rem;">REGISTRATION</h2>
-            <form action="https://formspree.io/f/xvzdoebv" method="POST" enctype="multipart/form-data">
+            <form id="regForm" action="https://formspree.io/f/xvzdoebv" method="POST" onsubmit="return handleRegistration(event)">
                 <input type="hidden" name="Tournament" id="hidden-tn">
-                <div style="display:flex; gap:10px; margin-bottom:25px;">
+                <input type="hidden" id="hidden-reg-type" value="Solo"> <div style="display:flex; gap:10px; margin-bottom:25px;">
                     <button type="button" id="b-solo" onclick="setRegType('Solo')" style="flex:1; padding:15px; border-radius:10px; border:none; font-family:'Bebas Neue'; font-size:1.5rem; cursor:pointer;">SOLO</button>
                     <button type="button" id="b-squad" onclick="setRegType('Squad')" style="flex:1; padding:15px; border-radius:10px; border:none; font-family:'Bebas Neue'; font-size:1.5rem; cursor:pointer;">SQUAD</button>
                 </div>
@@ -134,25 +133,35 @@
                         <label>Team Identity *</label>
                         <input type="text" name="Team_Name" placeholder="Team Name">
                         <label style="margin-top:10px;">Team Logo *</label>
-                        <input type="file" name="Team_Logo">
+                        <input type="text" name="Team_Logo"placeholder="Team_Logo link from google photo">
                     </div>
                     <div class="member-box"><label>SQUAD LEADER (P1)</label><div class="input-row"><input type="text" name="M1_N" placeholder="Name"><input type="text" name="M1_U" placeholder="UID"><input type="text" name="M1_D" placeholder="Discord"></div></div>
                     <div class="member-box"><label>Player 2</label><div class="input-row"><input type="text" name="M2_N" placeholder="Name"><input type="text" name="M2_U" placeholder="UID"><input type="text" name="M2_D" placeholder="Discord"></div></div>
                     <div class="member-box"><label>Player 3</label><div class="input-row"><input type="text" name="M3_N" placeholder="Name"><input type="text" name="M3_U" placeholder="UID"><input type="text" name="M3_D" placeholder="Discord"></div></div>
                     <div class="member-box"><label>Player 4</label><div class="input-row"><input type="text" name="M4_N" placeholder="Name"><input type="text" name="M4_U" placeholder="UID"><input type="text" name="M4_D" placeholder="Discord"></div></div>
                 </div>
+                
                 <div class="member-box" style="border-left:4px solid var(--magenta);">
                     <label>Prize Payout Details</label>
                     <select name="Payout_Type" id="payoutSelect" onchange="togglePayoutFields()">
                         <option value="UPI">UPI ID</option>
-                        <option value="QR">QR Code (File)</option>
+                        <option value="QR">QR Code (Link)</option>
+                        <option value="Binance">Binance</option>
                     </select>
-                    <div id="qr-upload-box" style="display:none; margin-top:10px;">
-                        <label>Upload QR Code</label>
-                        <input type="file" name="Prize_QR">
+                    
+                    <div id="holder-box">
+                        <input type="text" name="Account_Holder_Name" id="acc-holder-input" placeholder="Accounts Holder Name" required>
                     </div>
-                    <input type="text" name="Account_Holder_Name" placeholder="Accounts Holder Name" required>
-                    <input type="text" id="upi-input" name="UPI_ID" placeholder="UPI ID" required>    
+
+                    <div id="upi-box">
+                        <input type="text" id="upi-input" name="UPI_ID" placeholder="UPI ID" required>
+                    </div>
+
+                    <div id="qr-link-box" style="display:none; margin-top:10px;">
+                        <input type="text" name="QR_Code_Link" id="qr-input" placeholder="QR code link generated by Google Photos">
+                    </div>
+
+                    <div id="binance-info-box" style="display:none;"></div>
                 </div>
                 <button type="submit" class="btn-main" style="background:var(--magenta); color:#fff;">SUBMIT APPLICATION</button>
             </form>
@@ -184,6 +193,10 @@
                         <option value="squad">Squad Only</option>
                     </select>
                 </div>
+                <div class="input-row">
+                    <input type="number" id="t-solo-max" placeholder="Max Solo Slots">
+                    <input type="number" id="t-squad-max" placeholder="Max Squad Slots">
+                </div>
                 <button class="btn-main" style="font-size:1.2rem; padding:15px;" onclick="createTourney()">PUBLISH NOW</button>
             </div>
 
@@ -212,7 +225,7 @@
             <div id="staff-list"></div>
         </div>
 
-        <div class="view active" style="margin-top: 40px; border-color: var(--magenta);">
+        <div class="view" style="margin-top: 40px; border-color: var(--magenta);">
             <h2 class="sec-title" style="margin-top: 0;">WEBSITE FEEDBACK</h2>
             <p style="font-size: 13px; color: var(--cyan); text-align: center;">Shafin Mirza has successfully created this website. How was your experience?</p>
             
@@ -244,7 +257,6 @@
 </div>
 
 <script>
-    // Firebase Configuration
     const firebaseConfig = {
         apiKey: "AIzaSyAT14XHqlGWI-5fAharudfI6G9jReNJijE",
         authDomain: "new-project-99c14.firebaseapp.com",
@@ -260,6 +272,7 @@
     const database = firebase.database();
     const MASTER_KEY = "27052011";
     let selectedTourney = null;
+    let selectedTourneyKey = null; // Key track needed for slot update
 
     function toggleMenu() {
         const menu = document.getElementById('mainMenu');
@@ -274,30 +287,37 @@
         if(id === 'view-post') renderAdminControl();
     }
 
-    // Payment method logic fix
     function togglePayoutFields() {
         const type = document.getElementById('payoutSelect').value;
-        const qrBox = document.getElementById('qr-upload-box');
+        const upiBox = document.getElementById('upi-box');
+        const qrBox = document.getElementById('qr-link-box');
+        const holderBox = document.getElementById('holder-box');
         const upiInput = document.getElementById('upi-input');
+        const qrInput = document.getElementById('qr-input');
+        const holderInput = document.getElementById('acc-holder-input');
 
-        if(type === 'QR') {
-            qrBox.style.display = 'block';
-            upiInput.style.display = 'none';
-            upiInput.required = false;
-        } else {
-            qrBox.style.display = 'none';
-            upiInput.style.display = 'block';
-            upiInput.required = true;
+        upiBox.style.display = 'none';
+        qrBox.style.display = 'none';
+        holderBox.style.display = 'none';
+        upiInput.required = false;
+        qrInput.required = false;
+        holderInput.required = false;
+
+        if(type === 'UPI') {
+            upiBox.style.display = 'block'; holderBox.style.display = 'block';
+            upiInput.required = true; holderInput.required = true;
+            holderInput.placeholder = "Accounts Holder Name";
+        } else if(type === 'QR') {
+            qrBox.style.display = 'block'; qrInput.required = true;
+        } else if(type === 'Binance') {
+            holderBox.style.display = 'block'; holderInput.required = true;
+            holderInput.placeholder = "Binance Email ID, Binance ID, or Binance Phone Number";
         }
     }
 
     function attemptLogin() {
         const pass = document.getElementById('passInput').value;
-        if (pass === MASTER_KEY) {
-            loginSuccess({ name: "Shafin Mirza", role: "master" });
-            return;
-        }
-        
+        if (pass === MASTER_KEY) { loginSuccess({ name: "Shafin Mirza", role: "master" }); return; }
         database.ref('staff').once('value', snapshot => {
             const staffs = snapshot.val() || {};
             let found = Object.values(staffs).find(s => s.pass === pass);
@@ -328,46 +348,82 @@
 
     function logout() { localStorage.removeItem('ahypar_active'); location.reload(); }
 
+    // Integrated Slot Creation
     function createTourney() {
         const name = document.getElementById('t-name').value;
         const game = document.getElementById('t-game').value;
         const fee = document.getElementById('t-fee').value || 'FREE';
         const mode = document.getElementById('t-mode').value;
-        if(!name) return alert("Title Required!");
+        const s_max = parseInt(document.getElementById('t-solo-max').value) || 0;
+        const sq_max = parseInt(document.getElementById('t-squad-max').value) || 0;
 
-        const newEventRef = database.ref('events').push();
-        newEventRef.set({ id: Date.now(), name, game, fee, mode, status: 'open' })
-        .then(() => {
+        if(!name) return alert("Title Required!");
+        database.ref('events').push().set({
+            name, game, fee, mode, status: 'open',
+            s_max, s_vacant: s_max,
+            sq_max, sq_vacant: sq_max
+        }).then(() => {
             alert("Event Live!");
             document.getElementById('t-name').value = '';
             renderAdminControl();
         });
     }
 
+    // Integrated Slot Fetching
     function fetchTournaments() {
         database.ref('events').on('value', snapshot => {
             const data = snapshot.val() || {};
-            const list = Object.values(data);
             const container = document.getElementById('tourney-list');
-            container.innerHTML = list.length ? '' : '<p style="text-align:center; opacity:0.5;">No active events.</p>';
-            list.forEach(t => {
+            container.innerHTML = '';
+            Object.keys(data).forEach(key => {
+                const t = data[key];
                 const div = document.createElement('div');
                 div.className = `tourney-item ${t.status === 'closed' ? 'closed' : ''}`;
-                div.innerHTML = `
-                    <span class="fee-badge">${t.fee}</span>
-                    <h3>${t.name} <span class="status-tag status-${t.status}">${t.status}</span></h3>
-                    <small>${t.game} | ${t.mode.toUpperCase()}</small>
-                `;
+                
+                let vInfo = t.mode==='solo' ? `Vacant Solo: ${t.s_vacant}` : 
+                            t.mode==='squad' ? `Vacant Squad: ${t.sq_vacant}` : 
+                            `Solo: ${t.s_vacant} | Squad: ${t.sq_vacant}`;
+
+                div.innerHTML = `<span class="fee-badge">${t.fee}</span>
+                                 <h3>${t.name} <span class="status-tag status-${t.status}">${t.status}</span></h3>
+                                 <small>${t.game} | ${t.mode.toUpperCase()}</small>
+                                 <div style="color:var(--cyan); font-weight:bold; font-size:12px; margin-top:5px;">${vInfo}</div>`;
+                
                 if(t.status === 'open') {
                     div.onclick = () => {
                         document.querySelectorAll('.tourney-item').forEach(i => i.classList.remove('selected'));
                         div.classList.add('selected');
                         selectedTourney = t;
+                        selectedTourneyKey = key;
                     };
                 }
                 container.appendChild(div);
             });
         });
+    }
+
+    // Integrated Slot Decrement Logic
+    async function handleRegistration(e) {
+        if(!selectedTourneyKey) return true; // Fallback
+        const type = document.getElementById('hidden-reg-type').value; 
+        const field = type === 'Solo' ? 's_vacant' : 'sq_vacant';
+        
+        try {
+            const snap = await database.ref('events/' + selectedTourneyKey).get();
+            const tData = snap.val();
+
+            if (tData[field] <= 0) {
+                alert("Sorry, No Slots Available for this category!");
+                return false;
+            }
+
+            // Sync Update
+            await database.ref('events/' + selectedTourneyKey).child(field).set(tData[field] - 1);
+            return true; 
+        } catch (err) {
+            console.error(err);
+            return true;
+        }
     }
 
     function renderAdminControl() {
@@ -378,14 +434,7 @@
             Object.keys(data).forEach(key => {
                 const t = data[key];
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><b>${t.name}</b><br><small>${t.game}</small></td>
-                    <td><span class="status-tag status-${t.status}">${t.status}</span></td>
-                    <td>
-                        <button class="action-btn btn-status" onclick="toggleStatus('${key}', '${t.status}')">Toggle</button>
-                        <button class="action-btn btn-del" onclick="deleteTourney('${key}')">Del</button>
-                    </td>
-                `;
+                tr.innerHTML = `<td><b>${t.name}</b><br><small>${t.game}</small></td><td><span class="status-tag status-${t.status}">${t.status}</span></td><td><button class="action-btn btn-status" onclick="toggleStatus('${key}', '${t.status}')">Toggle</button><button class="action-btn btn-del" onclick="deleteTourney('${key}')">Del</button></td>`;
                 tbody.appendChild(tr);
             });
         });
@@ -413,6 +462,7 @@
     }
 
     function setRegType(type) {
+        document.getElementById('hidden-reg-type').value = type;
         const isSolo = type === 'Solo';
         document.getElementById('solo-section').style.display = isSolo ? 'block' : 'none';
         document.getElementById('squad-section').style.display = isSolo ? 'none' : 'block';
@@ -426,11 +476,7 @@
         const name = document.getElementById('staff-name').value;
         const pass = document.getElementById('staff-pass').value;
         if(!name || !pass) return;
-        database.ref('staff').push({ name, pass }).then(() => {
-            renderStaff();
-            document.getElementById('staff-name').value = '';
-            document.getElementById('staff-pass').value = '';
-        });
+        database.ref('staff').push({ name, pass }).then(() => { renderStaff(); document.getElementById('staff-name').value = ''; document.getElementById('staff-pass').value = ''; });
     }
 
     function renderStaff() {
@@ -438,29 +484,21 @@
             const list = snapshot.val() || {};
             const container = document.getElementById('staff-list');
             container.innerHTML = '<h4 style="margin:20px 0 10px; color:var(--cyan);">Staff Directory:</h4>';
-            
             Object.keys(list).forEach(key => {
                 const s = list[key];
                 const staffRow = document.createElement('div');
                 staffRow.style = "padding:12px; border-bottom:1px solid #222; display:flex; justify-content:space-between; align-items:center; font-size:14px;";
-                
-                staffRow.innerHTML = `
-                    <span>${s.name} (<b style="color:var(--magenta)">${s.pass}</b>)</span>
-                    <button class="action-btn btn-del" onclick="removeStaff('${key}')" style="margin:0;">Remove</button>
-                `;
+                staffRow.innerHTML = `<span>${s.name} (<b style="color:var(--magenta)">${s.pass}</b>)</span><button class="action-btn btn-del" onclick="removeStaff('${key}')">Remove</button>`;
                 container.appendChild(staffRow);
             });
         });
     }
 
     function removeStaff(key) {
-        if(confirm("Are you sure you want to revoke this access?")) {
-            database.ref('staff/' + key).remove().then(() => {
-                alert("Access Revoked!");
-            });
-        }
+        if(confirm("Are you sure?")) database.ref('staff/' + key).remove().then(() => alert("Access Revoked!"));
     }
 
+    togglePayoutFields();
     updateUI();
 </script>
 </body>
